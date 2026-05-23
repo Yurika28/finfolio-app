@@ -1,0 +1,235 @@
+### ─────────────────────────────────────────
+### 0 — HEALTH
+### ─────────────────────────────────────────
+
+### Health check — run this first, must return {"status":"ok"}
+GET http://localhost:3001/health
+
+
+### ─────────────────────────────────────────
+### 1 — STOCKS  (Finnhub, 1hr cache)
+### ─────────────────────────────────────────
+
+### All stocks sorted by top movers
+GET http://localhost:3001/api/stocks
+
+###
+
+### Single quote — hits Finnhub if cache is stale
+GET http://localhost:3001/api/stocks/AAPL
+
+###
+
+### Another symbol
+GET http://localhost:3001/api/stocks/TSLA
+
+###
+
+### Company profile — hits Finnhub if 24hr cache is stale
+GET http://localhost:3001/api/stocks/AAPL/profile
+
+###
+
+### Weekly chart — expect 404 until chartSync.job.js runs at 2am
+### To seed manually: call syncWeeklyChart(['AAPL']) from a test script
+GET http://localhost:3001/api/stocks/AAPL/chart
+
+###
+
+### Chart with custom limit (last 12 weeks)
+GET http://localhost:3001/api/stocks/MSFT/chart?limit=12
+
+
+### ─────────────────────────────────────────
+### 2 — CRYPTO  (Alpha Vantage, 12hr cache)
+### ─────────────────────────────────────────
+
+### All crypto rates — expect 404 data until cryptoSync.job.js runs at 8am
+GET http://localhost:3001/api/crypto
+
+###
+
+### Single crypto rate
+GET http://localhost:3001/api/crypto/BTC
+
+###
+
+GET http://localhost:3001/api/crypto/ETH
+
+###
+
+GET http://localhost:3001/api/crypto/SOL
+
+
+### ─────────────────────────────────────────
+### 3 — FOREX  (Alpha Vantage, 12hr cache)
+### ─────────────────────────────────────────
+
+### All forex pairs — expect empty until forexSync.job.js runs at 9am
+GET http://localhost:3001/api/forex
+
+###
+
+### GBP/USD — last 30 days of daily OHLC
+GET http://localhost:3001/api/forex/GBP-USD
+
+###
+
+### EUR/USD
+GET http://localhost:3001/api/forex/EUR-USD
+
+
+### ─────────────────────────────────────────
+### 4 — NEWS  (Finnhub, 6hr cache)
+### ─────────────────────────────────────────
+
+### General market news — triggers Finnhub on first call
+GET http://localhost:3001/api/news
+
+###
+
+### Company-specific news
+GET http://localhost:3001/api/news/AAPL
+
+###
+
+GET http://localhost:3001/api/news/TSLA
+
+###
+
+GET http://localhost:3001/api/news/NVDA
+
+
+### ─────────────────────────────────────────
+### 5 — IPO  (Finnhub, 24hr cache)
+### ─────────────────────────────────────────
+
+### IPO calendar — next 30 days
+GET http://localhost:3001/api/ipo/calendar
+
+
+### ─────────────────────────────────────────
+### 6 — AUTH  (Phase 2 — uncomment when ready)
+### ─────────────────────────────────────────
+
+### Register — run once to create your test user
+POST http://localhost:3001/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Login — copy the token from the response
+POST http://localhost:3001/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Get current user — paste your token below
+GET http://localhost:3001/api/auth/me
+Authorization: Bearer YOUR_TOKEN_HERE
+
+
+### ─────────────────────────────────────────
+### 7 — INSIGHTS  (Gemini AI)
+### ─────────────────────────────────────────
+
+### Daily market summary — public, no auth needed
+GET http://localhost:3001/api/insights/market
+
+###
+
+### Stock analysis — auth required
+POST http://localhost:3001/api/insights/stock/AAPL
+Authorization: Bearer YOUR_TOKEN_HERE
+
+###
+
+POST http://localhost:3001/api/insights/stock/TSLA
+Authorization: Bearer YOUR_TOKEN_HERE
+
+
+### ─────────────────────────────────────────
+### 8 — CHAT
+### ─────────────────────────────────────────
+
+### Ask the AI a question
+POST http://localhost:3001/api/chat
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "message": "What are the top movers today?",
+  "history": []
+}
+
+###
+
+### Follow-up with history
+POST http://localhost:3001/api/chat
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "message": "Tell me more about NVDA",
+  "history": [
+    { "role": "user",      "content": "What are the top movers today?" },
+    { "role": "assistant", "content": "Today's top movers include NVDA, TSLA..." }
+  ]
+}
+
+
+### ─────────────────────────────────────────
+### 9 — PORTFOLIO
+### ─────────────────────────────────────────
+
+### Get watchlist
+GET http://localhost:3001/api/portfolio/watchlist
+Authorization: Bearer YOUR_TOKEN_HERE
+
+###
+
+### Add to watchlist
+POST http://localhost:3001/api/portfolio/watchlist
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "symbol": "NVDA"
+}
+
+###
+
+### Remove from watchlist
+DELETE http://localhost:3001/api/portfolio/watchlist/NVDA
+Authorization: Bearer YOUR_TOKEN_HERE
+
+###
+
+### Get holdings
+GET http://localhost:3001/api/portfolio/holdings
+Authorization: Bearer YOUR_TOKEN_HERE
+
+###
+
+### Add a holding
+POST http://localhost:3001/api/portfolio/holdings
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "shares": 10,
+  "buyPrice": 175.50,
+  "buyDate": "2024-01-15"
+}

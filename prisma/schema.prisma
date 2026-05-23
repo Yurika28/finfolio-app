@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int           @id @default(autoincrement())
+  email       String        @unique
+  password    String
+  name        String?
+  createdAt   DateTime      @default(now())
+  watchlist   Watchlist[]
+  holdings    Holding[]
+  chatHistory ChatMessage[]
+  @@map("users")
+}
+
+model StockPrice {
+  id         Int      @id @default(autoincrement())
+  symbol     String   @unique
+  close      Float
+  high       Float
+  low        Float
+  open       Float
+  dp         Float
+  d          Float
+  insertedAt DateTime @default(now())
+  @@map("stocks_price")
+}
+
+model WeeklyChart {
+  id            Int      @id @default(autoincrement())
+  symbol        String
+  date          String
+  open          Float
+  high          Float
+  low           Float
+  close         Float
+  adjustedClose Float?
+  volume        BigInt?
+  insertedAt    DateTime @default(now())
+  @@unique([symbol, date])
+  @@map("weekly_chart")
+}
+
+model CryptoCurrencyRate {
+  id            Int      @id @default(autoincrement())
+  fromSymbol    String
+  toSymbol      String
+  exchangeRate  Float
+  lastRefreshed String
+  insertedAt    DateTime @default(now())
+  @@unique([fromSymbol, toSymbol])
+  @@map("crypto_currency_rate")
+}
+
+model ForexPrice {
+  id         Int      @id @default(autoincrement())
+  fromSymbol String
+  toSymbol   String
+  date       String
+  open       Float
+  high       Float
+  low        Float
+  close      Float
+  insertedAt DateTime @default(now())
+  @@unique([fromSymbol, toSymbol, date])
+  @@map("forex_price")
+}
+
+model CompanyProfile {
+  id                   Int      @id @default(autoincrement())
+  ticker               String   @unique
+  name                 String?
+  exchange             String?
+  finnhubIndustry      String?
+  marketCapitalization Float?
+  logo                 String?
+  weburl               String?
+  updatedAt            DateTime @default(now())
+  @@map("company_profile")
+}
+
+model MarketNews {
+  id         Int      @id @default(autoincrement())
+  newsId     Int      @unique
+  category   String?
+  datetime   Int?
+  headline   String?
+  source     String?
+  url        String?
+  insertedAt DateTime @default(now())
+  @@map("market_news")
+}
+
+// Symbol-specific news fetched from Finnhub /company-news — used by claude.service analyzeStock
+model CompanyNews {
+  id         Int      @id @default(autoincrement())
+  newsId     Int
+  symbol     String
+  category   String?
+  datetime   Int?
+  headline   String?
+  image      String?
+  source     String?
+  summary    String?
+  url        String?
+  insertedAt DateTime @default(now())
+  @@unique([newsId, symbol])
+  @@map("company_news")
+}
+
+model IpoCalendar {
+  id         Int      @id @default(autoincrement())
+  symbol     String?
+  name       String?
+  date       String?
+  price      Float?
+  shares     Float?
+  status     String?
+  insertedAt DateTime @default(now())
+  @@map("ipo_calendar")
+}
+
+model Insight {
+  id          Int      @id @default(autoincrement())
+  type        String   @unique
+  content     String
+  generatedAt DateTime @default(now())
+  @@map("insights")
+}
+
+model Watchlist {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  symbol  String
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id])
+  @@unique([userId, symbol])
+  @@map("watchlist")
+}
+
+model Holding {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  symbol   String
+  shares   Float
+  buyPrice Float
+  buyDate  DateTime
+  user     User     @relation(fields: [userId], references: [id])
+  @@map("holdings")
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("chat_messages")
+}
