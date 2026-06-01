@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma')
 const { delay } = require('../utils/delay')
-const { STOCK_SYMBOLS, CRYPTO_SYMBOLS } = require('../config/symbols')
+const { STOCK_SYMBOLS, CRYPTO_SYMBOLS, NEWS_SENTIMENT_SYMBOLS } = require('../config/symbols')
 
 const AV_BASE = 'https://www.alphavantage.co/query'
 const AV_KEY = () => process.env.ALPHA_VANTAGE_KEY
@@ -137,10 +137,11 @@ const syncForexRates = async (pairs) => {
 // News sentiment — called once/day at 6am by newsSync.job.js — 2 calls/day budget
 // Returns raw articles for the job to pass as context to Gemini — no DB write needed
 // (MarketNews is owned by Finnhub; AV sentiment is ephemeral context, not stored)
+
+
 const getNewsSentiment = async () => {
-  const stockTickers = STOCK_SYMBOLS.join(',')
-  const cryptoTickers = CRYPTO_SYMBOLS.map(s => `CRYPTO:${s}`).join(',')
-  const tickers = `${stockTickers},${cryptoTickers}`
+  const dayIndex = Math.floor(Date.now() / 86400000) % NEWS_SENTIMENT_SYMBOLS.length
+  const tickers = NEWS_SENTIMENT_SYMBOLS[dayIndex]
 
   const res = await fetch(
     `${AV_BASE}?function=NEWS_SENTIMENT&tickers=${tickers}&sort=LATEST&apikey=${AV_KEY()}`
@@ -149,7 +150,53 @@ const getNewsSentiment = async () => {
   if (checkRateLimit(json)) return []
 
   const articles = json.feed || []
-  console.log(`[AlphaVantage] News sentiment fetched: ${articles.length} articles`)
+  if (!articles.length) {
+    console.warn(`[AlphaVantage] No news articles for ${tickers}`)
+    return []
+  }
+
+  let rowCount = 0
+  for (const article of articles) {
+    // One row per ticker the article mentions (ticker_sentiment array)
+    const tickerEntries = article.ticker_sentiment || []
+
+    for (const ts of tickerEntries) {
+      await prisma.newsSentiment.upsert({
+        where: { url_symbol: { url: article.url, symbol: ts.ticker } },
+        update: {
+          title:                 article.title,
+          bannerImage:           article.banner_image,
+          source:                article.source,
+          sourceDomain:          article.source_domain,
+          summary:               article.summary,
+          overallSentimentLabel: article.overall_sentiment_label,
+          overallSentimentScore: parseFloat(article.overall_sentiment_score ?? 0),
+          sentimentLabel:        ts.ticker_sentiment_label,
+          sentimentScore:        parseFloat(ts.ticker_sentiment_score ?? 0),
+          relevanceScore:        parseFloat(ts.relevance_score ?? 0),
+          publishedAt:           article.time_published
+        },
+        create: {
+          symbol:                ts.ticker,
+          url:                   article.url,
+          title:                 article.title,
+          bannerImage:           article.banner_image,
+          source:                article.source,
+          sourceDomain:          article.source_domain,
+          summary:               article.summary,
+          overallSentimentLabel: article.overall_sentiment_label,
+          overallSentimentScore: parseFloat(article.overall_sentiment_score ?? 0),
+          sentimentLabel:        ts.ticker_sentiment_label,
+          sentimentScore:        parseFloat(ts.ticker_sentiment_score ?? 0),
+          relevanceScore:        parseFloat(ts.relevance_score ?? 0),
+          publishedAt:           article.time_published
+        }
+      })
+      rowCount++
+    }
+  }
+
+  console.log(`[AlphaVantage] News sentiment stored for ${tickers}: ${articles.length} articles, ${rowCount} rows`)
   return articles
 }
 

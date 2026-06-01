@@ -13,9 +13,10 @@ model User {
   password    String
   name        String?
   createdAt   DateTime      @default(now())
-  watchlist   Watchlist[]
-  holdings    Holding[]
   chatHistory ChatMessage[]
+  holdings    Holding[]
+  watchlist   Watchlist[]
+
   @@map("users")
 }
 
@@ -29,6 +30,7 @@ model StockPrice {
   dp         Float
   d          Float
   insertedAt DateTime @default(now())
+
   @@map("stocks_price")
 }
 
@@ -43,6 +45,7 @@ model WeeklyChart {
   adjustedClose Float?
   volume        BigInt?
   insertedAt    DateTime @default(now())
+
   @@unique([symbol, date])
   @@map("weekly_chart")
 }
@@ -54,6 +57,7 @@ model CryptoCurrencyRate {
   exchangeRate  Float
   lastRefreshed String
   insertedAt    DateTime @default(now())
+
   @@unique([fromSymbol, toSymbol])
   @@map("crypto_currency_rate")
 }
@@ -68,6 +72,7 @@ model ForexPrice {
   low        Float
   close      Float
   insertedAt DateTime @default(now())
+
   @@unique([fromSymbol, toSymbol, date])
   @@map("forex_price")
 }
@@ -82,6 +87,7 @@ model CompanyProfile {
   logo                 String?
   weburl               String?
   updatedAt            DateTime @default(now())
+
   @@map("company_profile")
 }
 
@@ -94,10 +100,10 @@ model MarketNews {
   source     String?
   url        String?
   insertedAt DateTime @default(now())
+
   @@map("market_news")
 }
 
-// Symbol-specific news fetched from Finnhub /company-news — used by claude.service analyzeStock
 model CompanyNews {
   id         Int      @id @default(autoincrement())
   newsId     Int
@@ -110,6 +116,7 @@ model CompanyNews {
   summary    String?
   url        String?
   insertedAt DateTime @default(now())
+
   @@unique([newsId, symbol])
   @@map("company_news")
 }
@@ -123,6 +130,7 @@ model IpoCalendar {
   shares     Float?
   status     String?
   insertedAt DateTime @default(now())
+
   @@map("ipo_calendar")
 }
 
@@ -131,6 +139,7 @@ model Insight {
   type        String   @unique
   content     String
   generatedAt DateTime @default(now())
+
   @@map("insights")
 }
 
@@ -140,6 +149,7 @@ model Watchlist {
   symbol  String
   addedAt DateTime @default(now())
   user    User     @relation(fields: [userId], references: [id])
+
   @@unique([userId, symbol])
   @@map("watchlist")
 }
@@ -152,6 +162,7 @@ model Holding {
   buyPrice Float
   buyDate  DateTime
   user     User     @relation(fields: [userId], references: [id])
+
   @@map("holdings")
 }
 
@@ -162,5 +173,27 @@ model ChatMessage {
   content   String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+
   @@map("chat_messages")
+}
+
+model NewsSentiment {
+  id                    Int      @id @default(autoincrement())
+  symbol                String
+  title                 String?
+  url                   String
+  bannerImage           String?
+  source                String?
+  sourceDomain          String?
+  summary               String?
+  overallSentimentLabel String?
+  overallSentimentScore Float?
+  sentimentLabel        String?
+  sentimentScore        Float?
+  relevanceScore        Float?
+  publishedAt           String?
+  fetchedAt             DateTime @default(now())
+
+  @@unique([url, symbol])
+  @@map("news_sentiment")
 }
