@@ -1,9 +1,3 @@
-
-
-node_modules/
-dist/
-*.log
-.env
-dist/
-build/
-.DS_Store
+﻿
+.claude/
+.vscode/
