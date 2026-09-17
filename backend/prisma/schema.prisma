@@ -7,17 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AnonymousChatSession {
+  id           String   @id
+  messageCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("anonymous_chat_sessions")
+}
+
 model User {
-  id          Int           @id @default(autoincrement())
-  email       String        @unique
-  password    String
-  name        String?
-  createdAt   DateTime      @default(now())
-  chatHistory ChatMessage[]
-  holdings    Holding[]
-  watchlist   Watchlist[]
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  password     String
+  name         String?
+  cashBalance  Float         @default(10000)
+  tokenVersion Int           @default(0)
+  createdAt    DateTime      @default(now())
+  chatHistory  ChatMessage[]
+  holdings     Holding[]
+  transactions Transaction[]
+  watchlist    Watchlist[]
 
   @@map("users")
+}
+
+// Row-per-job mutex so cron jobs run at most once across all backend
+// instances — a job claims its row by extending lockedUntil, and any
+// instance that loses the race skips that run. See src/utils/jobLock.js.
+model JobLock {
+  jobName     String   @id @map("job_name")
+  lockedUntil DateTime @map("locked_until")
+
+  @@map("job_locks")
 }
 
 model StockPrice {
@@ -60,6 +82,21 @@ model CryptoCurrencyRate {
 
   @@unique([fromSymbol, toSymbol])
   @@map("crypto_currency_rate")
+}
+
+model CryptoChart {
+  id         Int      @id @default(autoincrement())
+  symbol     String
+  date       String
+  open       Float
+  high       Float
+  low        Float
+  close      Float
+  volume     Float?
+  insertedAt DateTime @default(now())
+
+  @@unique([symbol, date])
+  @@map("crypto_chart")
 }
 
 model ForexPrice {
@@ -154,16 +191,50 @@ model Watchlist {
   @@map("watchlist")
 }
 
-model Holding {
-  id       Int      @id @default(autoincrement())
-  userId   Int
-  symbol   String
-  shares   Float
-  buyPrice Float
-  buyDate  DateTime
-  user     User     @relation(fields: [userId], references: [id])
+enum AssetType {
+  STOCK
+  CRYPTO
+  FOREX
+}
 
+// Open position for a user, average-cost basis. Quantity/avgCost are updated
+// in place as BUY/SELL trades execute — this table has no history, only the
+// current net position (history lives in Transaction).
+model Holding {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  assetType AssetType
+  symbol    String
+  quantity  Float
+  avgCost   Float
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, assetType, symbol])
   @@map("holdings")
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+// Immutable audit log of every simulated trade — a Holding is derived state,
+// this is the source of truth for what actually happened and when.
+model Transaction {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  assetType AssetType
+  symbol    String
+  side      TradeSide
+  quantity  Float
+  price     Float
+  total     Float
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("transactions")
 }
 
 model ChatMessage {
@@ -174,6 +245,7 @@ model ChatMessage {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("chat_messages")
 }
 

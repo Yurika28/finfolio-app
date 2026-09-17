@@ -87,6 +87,7 @@ function loadWithMocks() {
   //    it finds this entry instead of instantiating a real PrismaClient.
   prisma = {
     cryptoCurrencyRate: { upsert: vi.fn().mockResolvedValue({}) },
+    cryptoChart:        { upsert: vi.fn().mockResolvedValue({}) },
     weeklyChart:        { upsert: vi.fn().mockResolvedValue({}) },
     forexPrice:         { upsert: vi.fn().mockResolvedValue({}) },
   }

@@ -1,7 +1,8 @@
-import api from './api'
-import type { ICryptoRate } from '@/types/api.types'
+import { cachedGet } from './api'
+import type { ICryptoRate, ICryptoChart } from '@/types/api.types'
 
 export const cryptoService = {
-  getAll: ()               => api.get<ICryptoRate[]>('/api/crypto'),
-  getOne: (symbol: string) => api.get<ICryptoRate>(`/api/crypto/${symbol}`),
+  getAll:   ()                           => cachedGet<ICryptoRate[]>('/api/crypto'),
+  getOne:   (symbol: string)             => cachedGet<ICryptoRate>(`/api/crypto/${symbol}`),
+  getChart: (symbol: string, limit = 365) => cachedGet<ICryptoChart[]>(`/api/crypto/${symbol}/chart`, { params: { limit } }),
 }

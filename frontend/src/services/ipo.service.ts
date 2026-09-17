@@ -1,6 +1,6 @@
-import api from './api'
+import { cachedGet } from './api'
 import type { IIpoCalendar } from '@/types/api.types'
 
 export const ipoService = {
-  getCalendar: () => api.get<IIpoCalendar[]>('/api/ipo/calendar'),
+  getCalendar: () => cachedGet<IIpoCalendar[]>('/api/ipo/calendar'),
 }

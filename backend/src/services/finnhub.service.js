@@ -4,6 +4,7 @@ const { delay } = require('../utils/delay')
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1'
 const headers = { 'X-Finnhub-Token': process.env.FINNHUB_KEY }
+const FETCH_TIMEOUT_MS = 10_000
 
 // Single quote — cache-first, 1hr TTL
 const getStockQuote = async (symbol) => {
@@ -12,7 +13,7 @@ const getStockQuote = async (symbol) => {
   })
   if (cached) return cached
 
-  const res = await fetch(`${FINNHUB_BASE}/quote?symbol=${symbol}`, { headers })
+  const res = await fetch(`${FINNHUB_BASE}/quote?symbol=${symbol}`, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Finnhub quote ${symbol}: ${res.status}`)
   const d = await res.json()
 
@@ -45,7 +46,7 @@ const getCompanyProfile = async (symbol) => {
   })
   if (cached) return cached
 
-  const res = await fetch(`${FINNHUB_BASE}/stock/profile2?symbol=${symbol}`, { headers })
+  const res = await fetch(`${FINNHUB_BASE}/stock/profile2?symbol=${symbol}`, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Finnhub profile ${symbol}: ${res.status}`)
   const d = await res.json()
 
@@ -74,7 +75,7 @@ const getCompanyNews = async (symbol) => {
 
   const to = new Date().toISOString().split('T')[0]
   const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const res = await fetch(`${FINNHUB_BASE}/company-news?symbol=${symbol}&from=${from}&to=${to}`, { headers })
+  const res = await fetch(`${FINNHUB_BASE}/company-news?symbol=${symbol}&from=${from}&to=${to}`, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Finnhub company-news ${symbol}: ${res.status}`)
   const news = await res.json()
 
@@ -108,7 +109,7 @@ const getMarketNews = async () => {
   })
   if (cached.length > 0) return cached
 
-  const res = await fetch(`${FINNHUB_BASE}/news?category=general`, { headers })
+  const res = await fetch(`${FINNHUB_BASE}/news?category=general`, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Finnhub market news: ${res.status}`)
   const news = await res.json()
 
@@ -139,25 +140,29 @@ const getIPO = async () => {
 
   const from = new Date().toISOString().split('T')[0]
   const to = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const res = await fetch(`${FINNHUB_BASE}/calendar/ipo?from=${from}&to=${to}`, { headers })
+  const res = await fetch(`${FINNHUB_BASE}/calendar/ipo?from=${from}&to=${to}`, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Finnhub IPO calendar: ${res.status}`)
   const data = await res.json()
   const ipos = data.ipoCalendar || []
 
-  // IPO calendar has no stable unique key — wipe and re-insert on cache miss
-  await prisma.ipoCalendar.deleteMany()
-  if (ipos.length > 0) {
-    await prisma.ipoCalendar.createMany({
-      data: ipos.map((ipo) => ({
-        symbol: ipo.symbol || null,
-        name: ipo.name || null,
-        date: ipo.date || null,
-        price: ipo.price ? parseFloat(ipo.price) : null,
-        shares: ipo.numberOfShares ? parseFloat(ipo.numberOfShares) : null,
-        status: ipo.status || null
-      }))
-    })
-  }
+  // IPO calendar has no stable unique key — wipe and re-insert on cache miss.
+  // Transactional so concurrent readers/writers never see an empty table
+  // between the delete and the re-insert.
+  await prisma.$transaction([
+    prisma.ipoCalendar.deleteMany(),
+    ...(ipos.length > 0
+      ? [prisma.ipoCalendar.createMany({
+          data: ipos.map((ipo) => ({
+            symbol: ipo.symbol || null,
+            name: ipo.name || null,
+            date: ipo.date || null,
+            price: ipo.price ? parseFloat(ipo.price) : null,
+            shares: ipo.numberOfShares ? parseFloat(ipo.numberOfShares) : null,
+            status: ipo.status || null
+          }))
+        })]
+      : [])
+  ])
 
   return prisma.ipoCalendar.findMany({ orderBy: { date: 'asc' } })
 }

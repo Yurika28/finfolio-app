@@ -8,4 +8,13 @@ const rateLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' }
 })
 
-module.exports = { rateLimiter }
+// Tighter limiter for login/register — mitigates credential stuffing / brute force
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later.' }
+})
+
+module.exports = { rateLimiter, authRateLimiter }

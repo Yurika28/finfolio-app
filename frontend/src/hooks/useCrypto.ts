@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { cryptoService } from '@/services/crypto.service'
-import type { ICryptoRate, IHookState } from '@/types/api.types'
+import type { ICryptoRate, ICryptoChart, IHookState } from '@/types/api.types'
 
 export const useCrypto = (): IHookState<ICryptoRate[]> => {
   const [data, setData]         = useState<ICryptoRate[] | null>(null)
@@ -10,7 +10,7 @@ export const useCrypto = (): IHookState<ICryptoRate[]> => {
 
   useEffect(() => {
     cryptoService.getAll()
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load crypto rates'))
       .finally(() => setLoading(false))
   }, [])
@@ -25,10 +25,25 @@ export const useCryptoOne = (symbol: string): IHookState<ICryptoRate> => {
 
   useEffect(() => {
     cryptoService.getOne(symbol)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError(`Failed to load ${symbol}`))
       .finally(() => setLoading(false))
   }, [symbol])
+
+  return { data, isLoading, error }
+}
+
+export const useCryptoChart = (symbol: string, limit = 365): IHookState<ICryptoChart[]> => {
+  const [data, setData]         = useState<ICryptoChart[] | null>(null)
+  const [isLoading, setLoading] = useState(true)
+  const [error, setError]       = useState<string | null>(null)
+
+  useEffect(() => {
+    cryptoService.getChart(symbol, limit)
+      .then(setData)
+      .catch(() => setError('No chart data yet'))
+      .finally(() => setLoading(false))
+  }, [symbol, limit])
 
   return { data, isLoading, error }
 }

@@ -1,6 +1,7 @@
 'use client'
 import Navbar from '@/components/features/navigation-bar'
 import { CryptoCard } from '@/components/crypto/CryptoCard'
+import { NewsSentiment } from '@/components/sub-feature/news-sentiment'
 import { LoadingGrid } from '@/components/shared/LoadingCard'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -28,6 +29,11 @@ export default function CryptoPage() {
             {rates.map(r => <CryptoCard key={r.fromSymbol} rate={r} />)}
           </div>
         )}
+
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-white mb-4">News Sentiment</h2>
+          <NewsSentiment symbolPrefix="CRYPTO:" limit={6} />
+        </div>
       </main>
     </div>
   )

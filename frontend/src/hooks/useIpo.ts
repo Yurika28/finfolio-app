@@ -10,7 +10,7 @@ export const useIpo = (): IHookState<IIpoCalendar[]> => {
 
   useEffect(() => {
     ipoService.getCalendar()
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load IPO calendar'))
       .finally(() => setLoading(false))
   }, [])

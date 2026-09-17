@@ -3,15 +3,20 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceBadge } from '@/components/shared/PriceBadge'
-import { AddHoldingDialog } from '@/components/portfolio/AddHoldingDialog'
+import { TradeDialog } from '@/components/portfolio/TradeDialog'
 import { changeColor } from '@/utils/formatChange'
 import { formatDate } from '@/utils/formatDate'
 import { portfolioService } from '@/services/portfolio.service'
-import type { IStockQuote, IAddHoldingPayload } from '@/types/api.types'
+import { useTrading } from '@/hooks/usePortfolio'
+import type { IStockQuote } from '@/types/api.types'
+import { toast } from 'sonner'
+
+const fmt = (n: number | null | undefined) => (typeof n === 'number' ? n.toFixed(2) : '—')
 
 export const StockCard = ({ stock }: { stock: IStockQuote }) => {
   const [watching, setWatching] = useState(false)
   const [buyOpen,  setBuyOpen]  = useState(false)
+  const { buy } = useTrading()
 
   const handleWatchlist = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -19,12 +24,14 @@ export const StockCard = ({ stock }: { stock: IStockQuote }) => {
     try {
       await portfolioService.addToWatchlist(stock.symbol)
       setWatching(true)
-    } catch {}
+    } catch (err) {
+      const maybeAxiosError = err as { response?: { data?: { error?: string } } }
+      const message = maybeAxiosError.response?.data?.error ?? 'Failed to add to watchlist'
+      toast.error(message, { position: 'top-center' })
+    }
   }
 
-  const handleBuy = async (payload: IAddHoldingPayload) => {
-    await portfolioService.addHolding({ ...payload, symbol: stock.symbol })
-  }
+  const handleBuy = (quantity: number) => buy({ assetType: 'STOCK', symbol: stock.symbol, quantity })
 
   return (
     <>
@@ -35,12 +42,12 @@ export const StockCard = ({ stock }: { stock: IStockQuote }) => {
             <PriceBadge value={stock.dp} />
           </CardHeader>
           <CardContent className="space-y-1">
-            <p className="text-2xl font-bold text-white">${stock.close.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-white">${fmt(stock.close)}</p>
             <p className={`text-sm font-medium ${changeColor(stock.d)}`}>
-              {stock.d >= 0 ? '+' : ''}{stock.d.toFixed(2)}
+              {stock.d >= 0 ? '+' : ''}{fmt(stock.d)}
             </p>
             <p className="text-xs text-zinc-500">
-              H ${stock.high.toFixed(2)} · L ${stock.low.toFixed(2)}
+              H ${fmt(stock.high)} · L ${fmt(stock.low)}
             </p>
             <p className="text-xs text-zinc-600 pb-1">{formatDate(stock.insertedAt)}</p>
 
@@ -49,6 +56,8 @@ export const StockCard = ({ stock }: { stock: IStockQuote }) => {
               <button
                 onClick={handleWatchlist}
                 title={watching ? 'In watchlist' : 'Add to watchlist'}
+                aria-label={watching ? `${stock.symbol} is in your watchlist` : `Add ${stock.symbol} to watchlist`}
+                aria-pressed={watching}
                 className={`flex-1 text-xs font-semibold py-1.5 rounded-md border transition-colors ${
                   watching
                     ? 'border-yellow-500 text-yellow-400 bg-yellow-500/10'
@@ -68,14 +77,14 @@ export const StockCard = ({ stock }: { stock: IStockQuote }) => {
         </Card>
       </Link>
 
-      {buyOpen && (
-        <AddHoldingDialog
-          symbol={stock.symbol}
-          open={buyOpen}
-          onOpenChange={setBuyOpen}
-          onAdd={handleBuy}
-        />
-      )}
+      <TradeDialog
+        symbol={stock.symbol}
+        assetType="STOCK"
+        side="BUY"
+        open={buyOpen}
+        onOpenChange={setBuyOpen}
+        onSubmit={handleBuy}
+      />
     </>
   )
 }

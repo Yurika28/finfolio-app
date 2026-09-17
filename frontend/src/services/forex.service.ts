@@ -1,7 +1,7 @@
-import api from './api'
+import { cachedGet } from './api'
 import type { IForexPrice } from '@/types/api.types'
 
 export const forexService = {
-  getAll:  ()             => api.get<IForexPrice[]>('/api/forex'),
-  getPair: (pair: string) => api.get<IForexPrice[]>(`/api/forex/${pair}`),
+  getAll:  ()             => cachedGet<IForexPrice[]>('/api/forex'),
+  getPair: (pair: string) => cachedGet<IForexPrice[]>(`/api/forex/${pair}`),
 }

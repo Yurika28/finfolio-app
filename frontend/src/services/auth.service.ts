@@ -5,4 +5,5 @@ export const authService = {
   register: (data: IRegisterPayload) => api.post<IAuthResponse>('/api/auth/register', data),
   login:    (data: ILoginPayload)    => api.post<IAuthResponse>('/api/auth/login', data),
   me:       ()                       => api.get<IUser>('/api/auth/me'),
+  logout:   ()                       => api.post('/api/auth/logout'),
 }

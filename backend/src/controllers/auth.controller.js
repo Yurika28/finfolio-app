@@ -7,6 +7,10 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body
 
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' })
+    }
+
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) return res.status(409).json({ error: 'Email already registered' })
 
@@ -16,7 +20,7 @@ const register = async (req, res, next) => {
     })
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, tv: user.tokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     )
@@ -42,7 +46,7 @@ const login = async (req, res, next) => {
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' })
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, tv: user.tokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     )
@@ -70,4 +74,19 @@ const getMe = async (req, res, next) => {
   }
 }
 
-module.exports = { register, login, getMe }
+// POST /api/auth/logout — bumps tokenVersion so every token issued before
+// this call fails auth.middleware's version check, even ones still unexpired
+// and never presented here (e.g. stolen from a different device).
+const logout = async (req, res, next) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { tokenVersion: { increment: 1 } }
+    })
+    res.json({ ok: true })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { register, login, getMe, logout }

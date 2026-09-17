@@ -11,6 +11,9 @@ router.post('/watchlist',           validate(['symbol']), controller.addToWatchl
 router.delete('/watchlist/:symbol', controller.removeFromWatchlist)
 
 router.get('/holdings',             controller.getHoldings)
-router.post('/holdings',            validate(['symbol', 'shares', 'buyPrice', 'buyDate']), controller.addHolding)
+router.get('/balance',              controller.getBalance)
+router.get('/transactions',         controller.getTransactions)
+router.post('/buy',                 validate(['assetType', 'symbol', 'quantity']), controller.buy)
+router.post('/sell',                validate(['assetType', 'symbol', 'quantity']), controller.sell)
 
 module.exports = router

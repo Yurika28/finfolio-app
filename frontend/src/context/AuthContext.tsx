@@ -38,6 +38,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const logout = () => {
+    // Revoke server-side first (bumps tokenVersion so this token can't be
+    // reused even if it leaks) — best-effort, clear local state regardless.
+    authService.logout().catch(() => {})
     localStorage.removeItem('finfolio_token')
     setToken(null)
     setUser(null)

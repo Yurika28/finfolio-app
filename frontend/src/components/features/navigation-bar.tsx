@@ -12,11 +12,11 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="bg-black text-accent border-b border-zinc-800">
+    <nav className="bg-hero-bg border-b border-hero-border">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between h-[72px] md:h-[100px] px-5 md:px-16">
         {/* Left */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-11">
           <NavbarLogo />
 
           {/* Desktop links */}
@@ -26,7 +26,7 @@ export default function Navbar() {
         </div>
 
         {/* Right (desktop) */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-6">
           <NavbarSearch />
           <NavbarAuth />
         </div>
@@ -34,8 +34,8 @@ export default function Navbar() {
         {/* Burger (mobile) */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden p-2 rounded hover:bg-zinc-800 transition"
-          aria-label="Toggle menu"
+          className="md:hidden flex items-center justify-center h-11 w-11 -mr-2 rounded hover:bg-hero-surface transition text-hero-text-primary"
+          aria-label="Open menu"
         >
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -43,8 +43,8 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-zinc-800 bg-black">
-          <div className="flex flex-col gap-6 px-6 py-6">
+        <div className="md:hidden border-t border-hero-border bg-hero-bg">
+          <div className="flex flex-col gap-6 px-5 py-6">
             <NavbarLinks />
             <NavbarSearch />
             <NavbarAuth />

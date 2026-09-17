@@ -1,8 +1,13 @@
-import api from './api'
+import { cachedGet } from './api'
 import type { IMarketNews, ICompanyNews, INewsSentiment } from '@/types/api.types'
 
+interface ISentimentParams {
+  symbol?: string
+  symbolPrefix?: string
+}
+
 export const newsService = {
-  getMarket:    ()               => api.get<IMarketNews[]>('/api/news'),
-  getCompany:   (symbol: string) => api.get<ICompanyNews[]>(`/api/news/${symbol}`),
-  getSentiment: ()               => api.get<INewsSentiment[]>('/api/news/sentiment'),
+  getMarket:    ()               => cachedGet<IMarketNews[]>('/api/news'),
+  getCompany:   (symbol: string) => cachedGet<ICompanyNews[]>(`/api/news/${symbol}`),
+  getSentiment: (params?: ISentimentParams) => cachedGet<INewsSentiment[]>('/api/news/sentiment', { params }),
 }

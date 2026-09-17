@@ -10,7 +10,7 @@ export const useStocks = (): IHookState<IStockQuote[]> => {
 
   useEffect(() => {
     stocksService.getAll()
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load stocks'))
       .finally(() => setLoading(false))
   }, [])
@@ -25,7 +25,7 @@ export const useStockQuote = (symbol: string): IHookState<IStockQuote> => {
 
   useEffect(() => {
     stocksService.getQuote(symbol)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError(`Failed to load ${symbol}`))
       .finally(() => setLoading(false))
   }, [symbol])
@@ -40,7 +40,7 @@ export const useStockProfile = (symbol: string): IHookState<ICompanyProfile> => 
 
   useEffect(() => {
     stocksService.getProfile(symbol)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false))
   }, [symbol])
@@ -55,7 +55,7 @@ export const useStockChart = (symbol: string, limit = 52): IHookState<IWeeklyCha
 
   useEffect(() => {
     stocksService.getChart(symbol, limit)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('No chart data yet'))
       .finally(() => setLoading(false))
   }, [symbol, limit])

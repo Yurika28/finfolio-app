@@ -73,8 +73,14 @@ function NewsSentimentCard({ item }: { item: INewsSentiment }) {
   )
 }
 
-export function NewsSentiment({ limit = 6 }: { limit?: number }) {
-  const { data, isLoading } = useNewsSentiment()
+interface NewsSentimentProps {
+  limit?: number
+  symbol?: string
+  symbolPrefix?: string
+}
+
+export function NewsSentiment({ limit = 6, symbol, symbolPrefix }: NewsSentimentProps) {
+  const { data, isLoading } = useNewsSentiment({ symbol, symbolPrefix })
 
   if (isLoading) {
     return (

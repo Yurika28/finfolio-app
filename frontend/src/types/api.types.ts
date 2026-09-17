@@ -71,6 +71,15 @@ export interface ICryptoRate {
   insertedAt: string
 }
 
+export interface ICryptoChart {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number | null
+}
+
 // ── Forex ─────────────────────────────────────────────────
 export interface IForexPrice {
   id: number
@@ -151,20 +160,42 @@ export interface IWatchlistItem {
   addedAt: string
 }
 
+export type AssetType = 'STOCK' | 'CRYPTO' | 'FOREX'
+export type TradeSide = 'BUY' | 'SELL'
+
 export interface IHolding {
   id: number
   userId: number
+  assetType: AssetType
   symbol: string
-  shares: number
-  buyPrice: number
-  buyDate: string
+  quantity: number
+  avgCost: number
+  updatedAt: string
+  currentPrice: number | null
+  marketValue: number | null
+  gainLoss: number | null
 }
 
-export interface IAddHoldingPayload {
+export interface ITradePayload {
+  assetType: AssetType
   symbol: string
-  shares: number
-  buyPrice: number
-  buyDate: string
+  quantity: number
+}
+
+export interface ITransaction {
+  id: number
+  userId: number
+  assetType: AssetType
+  symbol: string
+  side: TradeSide
+  quantity: number
+  price: number
+  total: number
+  createdAt: string
+}
+
+export interface IBalance {
+  cashBalance: number
 }
 
 // ── News Sentiment ────────────────────────────────────────

@@ -1,9 +1,9 @@
-import api from './api'
+import { cachedGet } from './api'
 import type { IStockQuote, ICompanyProfile, IWeeklyChart } from '@/types/api.types'
 
 export const stocksService = {
-  getAll:     ()                         => api.get<IStockQuote[]>('/api/stocks'),
-  getQuote:   (symbol: string)           => api.get<IStockQuote>(`/api/stocks/${symbol}`),
-  getChart:   (symbol: string, limit = 52) => api.get<IWeeklyChart[]>(`/api/stocks/${symbol}/chart`, { params: { limit } }),
-  getProfile: (symbol: string)           => api.get<ICompanyProfile>(`/api/stocks/${symbol}/profile`),
+  getAll:     ()                         => cachedGet<IStockQuote[]>('/api/stocks'),
+  getQuote:   (symbol: string)           => cachedGet<IStockQuote>(`/api/stocks/${symbol}`),
+  getChart:   (symbol: string, limit = 52) => cachedGet<IWeeklyChart[]>(`/api/stocks/${symbol}/chart`, { params: { limit } }),
+  getProfile: (symbol: string)           => cachedGet<ICompanyProfile>(`/api/stocks/${symbol}/profile`),
 }

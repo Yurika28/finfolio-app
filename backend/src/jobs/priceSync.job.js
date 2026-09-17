@@ -2,9 +2,10 @@ const cron = require('node-cron')
 const { syncAllPrices } = require('../services/finnhub.service')
 const { emitPriceUpdate } = require('../services/socket.service')
 const { STOCK_SYMBOLS } = require('../config/symbols')
+const { withJobLock } = require('../utils/jobLock')
 
 // Every hour — Finnhub is unlimited free, no budget concern
-cron.schedule('0 * * * *', async () => {
+cron.schedule('0 * * * *', withJobLock('PriceSync', 5 * 60 * 1000, async () => {
   console.log('[PriceSync] Running...')
   try {
     const results = await syncAllPrices(STOCK_SYMBOLS)
@@ -14,4 +15,4 @@ cron.schedule('0 * * * *', async () => {
   } catch (err) {
     console.error('[PriceSync] Failed:', err.message)
   }
-})
+}))

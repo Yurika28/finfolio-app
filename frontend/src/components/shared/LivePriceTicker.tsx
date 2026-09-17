@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useContext } from 'react'
-import { SocketContext } from '@/context/SocketContext'
+import { useSocket } from '@/context/SocketContext'
 
 interface TickerPrice {
   symbol: string
@@ -10,7 +9,7 @@ interface TickerPrice {
 }
 
 export function LivePriceTicker() {
-  const socket = useContext(SocketContext)
+  const { socket } = useSocket()
   const [prices, setPrices] = useState<TickerPrice[]>([])
 
   useEffect(() => {

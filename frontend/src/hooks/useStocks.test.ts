@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import type { AxiosResponse } from 'axios'
 import { useStocks, useStockQuote, useStockChart } from './useStocks'
 import { stocksService } from '@/services/stocks.service'
 import type { IStockQuote, IWeeklyChart } from '@/types/api.types'
-
-const ax = <T>(data: T) => ({ data }) as unknown as AxiosResponse<T>
 
 vi.mock('@/services/stocks.service')
 
@@ -37,7 +34,7 @@ describe('useStocks', () => {
   })
 
   it('populates data and clears loading on success', async () => {
-    vi.mocked(stocksService.getAll).mockResolvedValue(ax([mockQuote]))
+    vi.mocked(stocksService.getAll).mockResolvedValue([mockQuote])
     const { result } = renderHook(() => useStocks())
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.data).toEqual([mockQuote])
@@ -57,7 +54,7 @@ describe('useStockQuote', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('fetches a quote by symbol', async () => {
-    vi.mocked(stocksService.getQuote).mockResolvedValue(ax(mockQuote))
+    vi.mocked(stocksService.getQuote).mockResolvedValue(mockQuote)
     const { result } = renderHook(() => useStockQuote('AAPL'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.data).toEqual(mockQuote)
@@ -71,7 +68,7 @@ describe('useStockQuote', () => {
   })
 
   it('re-fetches when the symbol changes', async () => {
-    vi.mocked(stocksService.getQuote).mockResolvedValue(ax(mockQuote))
+    vi.mocked(stocksService.getQuote).mockResolvedValue(mockQuote)
     const { rerender } = renderHook(({ symbol }) => useStockQuote(symbol), {
       initialProps: { symbol: 'AAPL' },
     })
@@ -84,7 +81,7 @@ describe('useStockChart', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('fetches chart data with default limit', async () => {
-    vi.mocked(stocksService.getChart).mockResolvedValue(ax(mockChart))
+    vi.mocked(stocksService.getChart).mockResolvedValue(mockChart)
     const { result } = renderHook(() => useStockChart('AAPL'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.data).toEqual(mockChart)

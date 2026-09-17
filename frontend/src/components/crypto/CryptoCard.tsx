@@ -2,10 +2,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AddHoldingDialog } from '@/components/portfolio/AddHoldingDialog'
+import { TradeDialog } from '@/components/portfolio/TradeDialog'
 import { portfolioService } from '@/services/portfolio.service'
+import { useTrading } from '@/hooks/usePortfolio'
 import { formatCurrency } from '@/utils/formatCurrency'
-import type { ICryptoRate, IAddHoldingPayload } from '@/types/api.types'
+import type { ICryptoRate } from '@/types/api.types'
 
 const CRYPTO_ICONS: Record<string, string> = {
   BTC: '₿', ETH: 'Ξ', DOGE: 'Ð', SOL: '◎', ADA: '₳', XRP: '✕',
@@ -14,6 +15,7 @@ const CRYPTO_ICONS: Record<string, string> = {
 export const CryptoCard = ({ rate }: { rate: ICryptoRate }) => {
   const [watching, setWatching] = useState(false)
   const [buyOpen,  setBuyOpen]  = useState(false)
+  const { buy } = useTrading()
 
   const handleWatchlist = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -24,9 +26,7 @@ export const CryptoCard = ({ rate }: { rate: ICryptoRate }) => {
     } catch {}
   }
 
-  const handleBuy = async (payload: IAddHoldingPayload) => {
-    await portfolioService.addHolding({ ...payload, symbol: rate.fromSymbol })
-  }
+  const handleBuy = (quantity: number) => buy({ assetType: 'CRYPTO', symbol: rate.fromSymbol, quantity })
 
   return (
     <>
@@ -67,14 +67,14 @@ export const CryptoCard = ({ rate }: { rate: ICryptoRate }) => {
         </Card>
       </Link>
 
-      {buyOpen && (
-        <AddHoldingDialog
-          symbol={rate.fromSymbol}
-          open={buyOpen}
-          onOpenChange={setBuyOpen}
-          onAdd={handleBuy}
-        />
-      )}
+      <TradeDialog
+        symbol={rate.fromSymbol}
+        assetType="CRYPTO"
+        side="BUY"
+        open={buyOpen}
+        onOpenChange={setBuyOpen}
+        onSubmit={handleBuy}
+      />
     </>
   )
 }

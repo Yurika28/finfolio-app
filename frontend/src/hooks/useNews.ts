@@ -10,7 +10,7 @@ export const useNews = (): IHookState<IMarketNews[]> => {
 
   useEffect(() => {
     newsService.getMarket()
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load news'))
       .finally(() => setLoading(false))
   }, [])
@@ -25,7 +25,7 @@ export const useCompanyNews = (symbol: string): IHookState<ICompanyNews[]> => {
 
   useEffect(() => {
     newsService.getCompany(symbol)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load company news'))
       .finally(() => setLoading(false))
   }, [symbol])
@@ -33,17 +33,18 @@ export const useCompanyNews = (symbol: string): IHookState<ICompanyNews[]> => {
   return { data, isLoading, error }
 }
 
-export const useNewsSentiment = (): IHookState<INewsSentiment[]> => {
+export const useNewsSentiment = (params?: { symbol?: string; symbolPrefix?: string }): IHookState<INewsSentiment[]> => {
   const [data, setData]         = useState<INewsSentiment[] | null>(null)
   const [isLoading, setLoading] = useState(true)
   const [error, setError]       = useState<string | null>(null)
+  const { symbol, symbolPrefix } = params ?? {}
 
   useEffect(() => {
-    newsService.getSentiment()
-      .then(r => setData(r.data))
+    newsService.getSentiment({ symbol, symbolPrefix })
+      .then(setData)
       .catch(() => setError('Failed to load news sentiment'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [symbol, symbolPrefix])
 
   return { data, isLoading, error }
 }

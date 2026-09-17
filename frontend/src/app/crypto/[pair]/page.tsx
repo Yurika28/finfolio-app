@@ -1,13 +1,13 @@
 'use client'
 import { use } from 'react'
 import Navbar from '@/components/features/navigation-bar'
+import { CryptoChart } from '@/components/crypto/CryptoChart'
+import { NewsSentiment } from '@/components/sub-feature/news-sentiment'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCryptoOne } from '@/hooks/useCrypto'
-import { useNews } from '@/hooks/useNews'
 import { formatCurrency } from '@/utils/formatCurrency'
-import { formatDate } from '@/utils/formatDate'
 import Link from 'next/link'
 
 const CRYPTO_ICONS: Record<string, string> = {
@@ -19,13 +19,6 @@ export default function CryptoPairPage({ params }: { params: Promise<{ pair: str
   const [symbol, market = 'USD'] = pair.split('-').map(s => s.toUpperCase())
 
   const { data: rate, isLoading, error } = useCryptoOne(symbol)
-  const { data: news, isLoading: nLoading } = useNews()
-
-  const cryptoNews = news?.filter(item =>
-    item.headline?.toLowerCase().includes(symbol.toLowerCase()) ||
-    item.category?.toLowerCase().includes('crypto') ||
-    item.category?.toLowerCase().includes('blockchain')
-  )
 
   return (
     <div className="bg-background min-h-screen">
@@ -70,33 +63,16 @@ export default function CryptoPairPage({ params }: { params: Promise<{ pair: str
           </Card>
         ) : null}
 
-        {/* Related News */}
+        {/* Chart */}
         <div>
-          <h2 className="text-lg font-semibold text-white mb-4">Related News</h2>
-          {nLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
-            </div>
-          ) : cryptoNews && cryptoNews.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {cryptoNews.slice(0, 6).map((item, i) => (
-                <a
-                  key={i}
-                  href={item.url ?? undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-4 rounded-lg border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900 transition-colors"
-                >
-                  <p className="text-sm font-medium text-white line-clamp-2">{item.headline}</p>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    {item.source} · {item.datetime ? formatDate(new Date(item.datetime * 1000).toISOString()) : ''}
-                  </p>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="text-zinc-500 text-sm">No related news found.</p>
-          )}
+          <h2 className="text-lg font-semibold text-white mb-4">Price Chart</h2>
+          <CryptoChart symbol={symbol} />
+        </div>
+
+        {/* News Sentiment */}
+        <div>
+          <h2 className="text-lg font-semibold text-white mb-4">News Sentiment</h2>
+          <NewsSentiment symbol={`CRYPTO:${symbol}`} limit={6} />
         </div>
 
       </main>

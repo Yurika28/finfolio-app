@@ -4,6 +4,7 @@ const { STOCK_SYMBOLS, CRYPTO_SYMBOLS, NEWS_SENTIMENT_SYMBOLS } = require('../co
 
 const AV_BASE = 'https://www.alphavantage.co/query'
 const AV_KEY = () => process.env.ALPHA_VANTAGE_KEY
+const FETCH_TIMEOUT_MS = 10_000
 
 // Rate limit guard — call this before touching any response data
 // Emergency rule: if hit, return without writing — stale cache is better than a crash
@@ -24,7 +25,8 @@ const checkRateLimit = (json) => {
 const syncWeeklyChart = async (symbols) => {
   for (const symbol of symbols) {
     const res = await fetch(
-      `${AV_BASE}?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${symbol}&apikey=${AV_KEY()}`
+      `${AV_BASE}?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${symbol}&apikey=${AV_KEY()}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
     )
     const json = await res.json()
     if (checkRateLimit(json)) return
@@ -64,32 +66,52 @@ const syncWeeklyChart = async (symbols) => {
 
 // Crypto prices — 12hr cache via cron schedule, only called by cryptoSync.job.js
 // 6 symbols × 2 runs/day = 12 calls/day
+// Also backfills crypto_chart from the same response (no extra AV calls) so the
+// crypto pair page can render a history chart, mirroring weekly_chart for stocks.
 const syncCryptoPrices = async (symbols) => {
   for (const symbol of symbols) {
     const res = await fetch(
-      `${AV_BASE}?function=DIGITAL_CURRENCY_DAILY&symbol=${symbol}&market=USD&apikey=${AV_KEY()}`
+      `${AV_BASE}?function=DIGITAL_CURRENCY_DAILY&symbol=${symbol}&market=USD&apikey=${AV_KEY()}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
     )
     const json = await res.json()
     if (checkRateLimit(json)) return
 
     const series = json['Time Series (Digital Currency Daily)'] || {}
-    const latest = Object.entries(series)[0]
-    if (!latest) {
+    const entries = Object.entries(series)
+    if (!entries.length) {
       console.warn(`[AlphaVantage] No crypto data for ${symbol}`)
       continue
     }
-    const [date, v] = latest
 
     // AV changed their field names over time — fall back to the newer key if the old one is absent
-    const closePrice = parseFloat(v['4b. close (USD)'] ?? v['4. close'] ?? 0)
+    const rows = entries.map(([date, v]) => ({
+      symbol,
+      date,
+      open:   parseFloat(v['1b. open (USD)']  ?? v['1. open']  ?? 0),
+      high:   parseFloat(v['2b. high (USD)']  ?? v['2. high']  ?? 0),
+      low:    parseFloat(v['3b. low (USD)']   ?? v['3. low']   ?? 0),
+      close:  parseFloat(v['4b. close (USD)'] ?? v['4. close'] ?? 0),
+      volume: v['5. volume'] !== undefined ? parseFloat(v['5. volume']) : null,
+    }))
+
+    const [latest] = rows
 
     await prisma.cryptoCurrencyRate.upsert({
       where: { fromSymbol_toSymbol: { fromSymbol: symbol, toSymbol: 'USD' } },
-      update: { exchangeRate: closePrice, lastRefreshed: date, insertedAt: new Date() },
-      create: { fromSymbol: symbol, toSymbol: 'USD', exchangeRate: closePrice, lastRefreshed: date }
+      update: { exchangeRate: latest.close, lastRefreshed: latest.date, insertedAt: new Date() },
+      create: { fromSymbol: symbol, toSymbol: 'USD', exchangeRate: latest.close, lastRefreshed: latest.date }
     })
 
-    console.log(`[AlphaVantage] Crypto synced: ${symbol}/USD @ ${closePrice}`)
+    for (const row of rows) {
+      await prisma.cryptoChart.upsert({
+        where: { symbol_date: { symbol: row.symbol, date: row.date } },
+        update: { open: row.open, high: row.high, low: row.low, close: row.close, volume: row.volume },
+        create: row
+      })
+    }
+
+    console.log(`[AlphaVantage] Crypto synced: ${symbol}/USD @ ${latest.close} (${rows.length} chart rows)`)
     await delay(1200)
   }
 }
@@ -99,7 +121,8 @@ const syncCryptoPrices = async (symbols) => {
 const syncForexRates = async (pairs) => {
   for (const { from, to } of pairs) {
     const res = await fetch(
-      `${AV_BASE}?function=FX_DAILY&from_symbol=${from}&to_symbol=${to}&apikey=${AV_KEY()}`
+      `${AV_BASE}?function=FX_DAILY&from_symbol=${from}&to_symbol=${to}&apikey=${AV_KEY()}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
     )
     const json = await res.json()
     if (checkRateLimit(json)) return
@@ -135,16 +158,16 @@ const syncForexRates = async (pairs) => {
 }
 
 // News sentiment — called once/day at 6am by newsSync.job.js — 2 calls/day budget
-// Returns raw articles for the job to pass as context to Gemini — no DB write needed
-// (MarketNews is owned by Finnhub; AV sentiment is ephemeral context, not stored)
-
+// Upserts one news_sentiment row per (article, ticker) pair, keyed on [url, symbol]
+// (MarketNews itself is owned by Finnhub — this is AV's separate sentiment feed)
 
 const getNewsSentiment = async () => {
   const dayIndex = Math.floor(Date.now() / 86400000) % NEWS_SENTIMENT_SYMBOLS.length
   const tickers = NEWS_SENTIMENT_SYMBOLS[dayIndex]
 
   const res = await fetch(
-    `${AV_BASE}?function=NEWS_SENTIMENT&tickers=${tickers}&sort=LATEST&apikey=${AV_KEY()}`
+    `${AV_BASE}?function=NEWS_SENTIMENT&tickers=${tickers}&sort=LATEST&apikey=${AV_KEY()}`,
+    { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
   )
   const json = await res.json()
   if (checkRateLimit(json)) return []

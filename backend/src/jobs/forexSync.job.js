@@ -1,9 +1,10 @@
 const cron = require('node-cron')
 const { syncForexRates } = require('../services/alphaVantage.service')
 const { FOREX_PAIRS } = require('../config/symbols')
+const { withJobLock } = require('../utils/jobLock')
 
 // 9am + 9pm — 2 pairs × 2 runs = 4 Alpha Vantage calls/day
-cron.schedule('0 9,21 * * *', async () => {
+cron.schedule('0 9,21 * * *', withJobLock('ForexSync', 5 * 60 * 1000, async () => {
   console.log('[ForexSync] Running...')
   try {
     await syncForexRates(FOREX_PAIRS)
@@ -11,4 +12,4 @@ cron.schedule('0 9,21 * * *', async () => {
   } catch (err) {
     console.error('[ForexSync] Failed:', err.message)
   }
-})
+}))

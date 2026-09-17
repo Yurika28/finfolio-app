@@ -75,18 +75,22 @@ export default function NavbarSearch() {
 
   return (
     <div ref={containerRef} className="relative">
+      <label htmlFor="navbar-search-input" className="sr-only">
+        Search tickers
+      </label>
       <input
+        id="navbar-search-input"
         type="text"
         value={query}
         onChange={e => { setQuery(e.target.value); setOpen(true) }}
         onKeyDown={handleKeyDown}
         onFocus={() => setOpen(true)}
         placeholder="Search tickers…"
-        className="px-3 py-2 pr-8 rounded-full bg-zinc-800 text-sm text-white placeholder-zinc-400 border border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-200 w-44"
+        className="px-3.5 py-2 pr-9 rounded-full bg-hero-surface text-[13px] font-body text-hero-text-primary placeholder-hero-text-faint border border-hero-border focus:outline-none focus:ring-1 focus:ring-hero-accent w-[210px]"
       />
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none"
+        className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-hero-text-muted pointer-events-none"
         fill="none" viewBox="0 0 24 24" stroke="currentColor"
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -94,16 +98,16 @@ export default function NavbarSearch() {
       </svg>
 
       {open && results.length > 0 && (
-        <div className="absolute top-full mt-2 left-0 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 w-64 bg-hero-bg border border-hero-border rounded-xl shadow-xl z-50 overflow-hidden">
           {results.map(item => (
             <button
               key={item.symbol}
               onMouseDown={() => navigate(item)}
-              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-zinc-800 transition-colors text-left"
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-hero-surface transition-colors text-left"
             >
               <div>
-                <span className="text-sm font-semibold text-white">{item.symbol}</span>
-                <span className="text-xs text-zinc-400 ml-2">{item.name}</span>
+                <span className="text-sm font-semibold text-hero-text-primary">{item.symbol}</span>
+                <span className="text-xs text-hero-text-muted ml-2">{item.name}</span>
               </div>
               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                 item.type === 'crypto' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'

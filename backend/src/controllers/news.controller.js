@@ -23,9 +23,18 @@ const getCompanyNews = async (req, res, next) => {
 }
 
 // GET /api/news/sentiment — latest AV sentiment rows, most recent first
+// Optional ?symbol=CRYPTO:BTC for an exact match, or ?symbolPrefix=CRYPTO: to match a family of tickers
 const getNewsSentiment = async (req, res, next) => {
   try {
+    const { symbol, symbolPrefix } = req.query
+    const where = symbol
+      ? { symbol }
+      : symbolPrefix
+        ? { symbol: { startsWith: symbolPrefix } }
+        : undefined
+
     const data = await prisma.newsSentiment.findMany({
+      where,
       orderBy: { fetchedAt: 'desc' },
       take: 50,
     })

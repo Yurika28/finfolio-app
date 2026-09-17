@@ -29,4 +29,28 @@ const getCryptoRate = async (req, res, next) => {
   }
 }
 
-module.exports = { getAllCrypto, getCryptoRate }
+// GET /api/crypto/:symbol/chart?limit=365 — daily OHLC bars from DB only
+// NEVER triggers Alpha Vantage — chart data is populated exclusively by cryptoSync.job.js
+const getCryptoChart = async (req, res, next) => {
+  try {
+    const { symbol } = req.params
+    const limit = Math.min(parseInt(req.query.limit) || 365, 1825) // cap at 5 years
+
+    const rows = await prisma.cryptoChart.findMany({
+      where: { symbol: symbol.toUpperCase() },
+      orderBy: { date: 'asc' },
+      take: limit,
+      select: { date: true, open: true, high: true, low: true, close: true, volume: true }
+    })
+
+    if (!rows.length) {
+      return res.status(404).json({ error: `No chart data for ${symbol} — cryptoSync.job.js may not have run yet` })
+    }
+
+    res.json(rows)
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { getAllCrypto, getCryptoRate, getCryptoChart }

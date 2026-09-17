@@ -10,7 +10,7 @@ export const useForex = (): IHookState<IForexPrice[]> => {
 
   useEffect(() => {
     forexService.getAll()
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError('Failed to load forex rates'))
       .finally(() => setLoading(false))
   }, [])
@@ -25,7 +25,7 @@ export const useForexPair = (pair: string): IHookState<IForexPrice[]> => {
 
   useEffect(() => {
     forexService.getPair(pair)
-      .then(r => setData(r.data))
+      .then(setData)
       .catch(() => setError(`Failed to load ${pair}`))
       .finally(() => setLoading(false))
   }, [pair])
