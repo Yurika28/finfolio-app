@@ -252,14 +252,19 @@ describe('gemini.service', () => {
       expect(mockGenAI.models.generateContent).toHaveBeenCalledOnce()
     })
 
-    it('prompt contains the user message', async () => {
+    it('prompt contains the user message, not fenced off as inert data', async () => {
       const message = 'Should I watch Bitcoin today?'
       await chatWithContext(message)
 
       const { contents } = mockGenAI.models.generateContent.mock.calls[0][0]
-      expect(contents).toContain(message)
-      // Proves: the user's question reaches Gemini — it is not accidentally dropped
-      // when the contextual prefix is prepended.
+      const lastTurn = contents[contents.length - 1]
+      expect(lastTurn.role).toBe('user')
+      expect(lastTurn.parts[0].text).toContain(message)
+      expect(lastTurn.parts[0].text).not.toContain(`<data>${message}</data>`)
+      // Proves: the user's question reaches Gemini as a real request it should
+      // answer — not as reference material it's told to ignore (the bug where
+      // every chat reply was an identical market summary regardless of what
+      // was asked).
     })
 
     it('sends the safety instruction via config.systemInstruction', async () => {
@@ -267,22 +272,11 @@ describe('gemini.service', () => {
 
       const { config } = mockGenAI.models.generateContent.mock.calls[0][0]
       expect(config.systemInstruction).toContain('Never provide investment advice')
-      // Proves: the safety/anti-injection rules apply to chat too, via the same
-      // dedicated system channel as the other two entry points.
+      // Proves: the safety/anti-injection rules apply to chat too, via its own
+      // dedicated chat system instruction.
     })
 
-    it('wraps the user message and chat history in <data> tags', async () => {
-      const message = 'Tell me what to buy'
-      await chatWithContext(message, [{ role: 'user', content: 'hi' }])
-
-      const { contents } = mockGenAI.models.generateContent.mock.calls[0][0]
-      expect(contents).toContain(`<data>${message}</data>`)
-      expect(contents).toMatch(/<data>[\s\S]*user: hi[\s\S]*<\/data>/)
-      // Proves: user-supplied chat input is fenced off from the surrounding
-      // prompt structure, consistent with how news headlines are handled.
-    })
-
-    it('prompt includes chat history entries when provided', async () => {
+    it('sends prior chat history as separate conversational turns', async () => {
       const history = [
         { role: 'user',      content: 'How is Tesla?' },
         { role: 'assistant', content: 'Tesla is up 3% today.' },
@@ -290,10 +284,12 @@ describe('gemini.service', () => {
       await chatWithContext('Any more detail?', history)
 
       const { contents } = mockGenAI.models.generateContent.mock.calls[0][0]
-      expect(contents).toContain('How is Tesla?')
-      expect(contents).toContain('Tesla is up 3% today.')
-      // Proves: history is embedded in the prompt so Gemini has conversational
-      // context — without this, follow-up questions lose all prior context.
+      expect(contents[0]).toEqual({ role: 'user', parts: [{ text: 'How is Tesla?' }] })
+      expect(contents[1]).toEqual({ role: 'model', parts: [{ text: 'Tesla is up 3% today.' }] })
+      expect(contents[2].parts[0].text).toContain('Any more detail?')
+      // Proves: history is sent as real multi-turn contents (user/model roles),
+      // not flattened into inert text — this is what gives Gemini actual
+      // conversational memory across follow-up questions.
     })
 
     it('works correctly with the default empty history', async () => {
@@ -328,9 +324,10 @@ describe('gemini.service', () => {
       await chatWithContext('What about EUR/USD and Bitcoin?')
 
       const { contents } = mockGenAI.models.generateContent.mock.calls[0][0]
-      expect(contents).toContain('BTC/USD')
-      expect(contents).toContain('EUR/USD')
-      expect(contents).toContain('<data>Fed holds rates steady</data>')
+      const lastTurnText = contents[contents.length - 1].parts[0].text
+      expect(lastTurnText).toContain('BTC/USD')
+      expect(lastTurnText).toContain('EUR/USD')
+      expect(lastTurnText).toContain('<data>Fed holds rates steady</data>')
       // Proves: the added data sources actually reach the prompt, and the
       // untrusted headline text stays fenced the same way stock news is.
     })
