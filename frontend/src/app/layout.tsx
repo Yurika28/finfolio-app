@@ -27,6 +27,17 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'FinFolio — AI Finance Tracker',
   description: 'Track stocks, crypto, forex with AI insights',
+  openGraph: {
+    title: 'FinFolio — AI Finance Tracker',
+    description: 'Track stocks, crypto, forex with AI insights',
+    images: ['/og-image.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FinFolio — AI Finance Tracker',
+    description: 'Track stocks, crypto, forex with AI insights',
+    images: ['/og-image.png'],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
